@@ -6,6 +6,7 @@
 #include <QSerialPortInfo>
 #include <QTimer>
 #include "Protocol.h"
+#include "GlobalConstants.h"
 
 class SerialConnector : public QObject
 {

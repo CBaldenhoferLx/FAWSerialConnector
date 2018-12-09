@@ -32,4 +32,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 HEADERS += \
-    serialconnector.h
+    serialconnector.h \
+    C:/Users/Megaport/Documents/Arduino/libraries/FAWControlLib/GlobalConstants.h \
+    C:/Users/Megaport/Documents/Arduino/libraries/FAWControlLib/Protocol.h

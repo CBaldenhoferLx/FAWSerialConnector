@@ -32,10 +32,10 @@ bool SerialConnector::connect(QString port1, QString port2) {
     qDebug() << Q_FUNC_INFO << port1 << port2;
 
     m_port1.setPort(QSerialPortInfo(port1));
-    m_port1.setBaudRate(9600);
+    m_port1.setBaudRate(SERIAL_SPEED);
 
     m_port2.setPort(QSerialPortInfo(port2));
-    m_port2.setBaudRate(9600);
+    m_port2.setBaudRate(SERIAL_SPEED);
 
     if (m_port1.open(QIODevice::ReadWrite)) {
         if (m_port2.open(QIODevice::ReadWrite)) {
