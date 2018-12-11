@@ -53,11 +53,9 @@ bool SerialConnector::connect(QString port1, QString port2) {
 
     m_port1.setPort(QSerialPortInfo(port1));
     m_port1.setBaudRate(SERIAL_SPEED);
-    //m_port1.setReadBufferSize(DATA_PACKAGE_SIZE*2);
 
     m_port2.setPort(QSerialPortInfo(port2));
     m_port2.setBaudRate(SERIAL_SPEED);
-    //m_port2.setReadBufferSize(DATA_PACKAGE_SIZE*2);
 
     if (m_port1.open(QIODevice::ReadWrite)) {
         if (m_port2.open(QIODevice::ReadWrite)) {
@@ -149,7 +147,7 @@ void SerialConnector::handleReadyRead() {
                 }
             } else {
                 qWarning() << "Invalid message length:" << msg.length();
-            }
+                }
         } else {
             Q_EMIT logMessage(port->portName(), msg);
         }
@@ -184,22 +182,65 @@ void SerialConnector::sendCmd(QString port, QString cmd) {
 QString SerialConnector::generateTooltip(QString cmd) {
     if (cmd.isEmpty()) return "";
 
-    if (cmd.startsWith(CMD_PING)) {
-        return "Ping";
-    } else if (cmd.startsWith(CMD_VAPO)) {
-        return "Vapo";
-    } else if (cmd.startsWith(CMD_FAN)) {
-        return "Fan";
-    } else if (cmd.startsWith(CMD_SEAT)) {
-        return "Seat";
-    } else if (cmd.startsWith(CMD_LED_COLOR)) {
-        return "Led Color";
-    } else if (cmd.startsWith(CMD_LED_BRIGHTNESS)) {
-        return "Led Brightness";
-    } else if (cmd.startsWith(CMD_RESTART)) {
-        return "Restart";
-    } else {
-        return "Unknown command";
+    QString returnStr = resolveCmd(cmd.at(0));
+    if (cmd.length()>1) returnStr.append("|").append(resolveMod(cmd.at(0), cmd.at(1)));
+    if (cmd.length()>2) returnStr.append("|").append(cmd.at(2));
+
+    return returnStr;
+}
+
+QString SerialConnector::resolveCmd(QChar cmd) {
+    switch(cmd.toLatin1()) {
+    case CMD_PING: return "Ping";
+    case CMD_PING_FB: return "Ping FB";
+    case CMD_VAPO: return "Vapo";
+    case CMD_VAPO_FB: return "Vapo FB";
+    case CMD_MM_FB: return "MM FB";
+    case CMD_FAN: return "Fan";
+    case CMD_FAN_FB: return "Fan FB";
+    case CMD_SEAT: return "Seat";
+    case CMD_SEAT_POS_FB: return "Seat Pos FB";
+    case CMD_SEAT_SWITCH_FB: return "Seat Switch FB";
+    case CMD_SEAT_MOVE_FB: return "Seat Move FB";
+    case CMD_LEVEL_FB: return "Level FB";
+    case CMD_LED_COLOR: return "LED Color";
+    case CMD_LED_COLOR_FB: return "LED Color FB";
+    case CMD_LED_BRIGHTNESS: return "LED Brightness";
+    case CMD_LED_BRIGHTNESS_FB: return "LED Brightness FB";
+    case CMD_RESTART: return "Restart";
+    default:
+       return QStringLiteral("Unknown: ").append(cmd);
+    }
+}
+
+QString SerialConnector::resolveMod(QChar cmd, QChar mod) {
+    switch(mod.toLatin1()) {
+    case MOD_NONE: return "None";
+    case MOD_ERROR: return "Error";
+    case MOD_LEFT: return "Left";
+    case MOD_MIDDLE:        // MOD_LED_MIDDLE_STRIP
+        switch(cmd.toLatin1()) {
+        case CMD_VAPO:
+        case CMD_VAPO_FB:
+        case CMD_MM_FB:
+        case CMD_LEVEL_FB:
+            return "Middle";
+        case CMD_LED_COLOR:
+        case CMD_LED_COLOR_FB:
+        case CMD_LED_BRIGHTNESS:
+        case CMD_LED_BRIGHTNESS_FB:
+            return "LED MS";
+        default:
+            return QStringLiteral("Unknown: ").append(mod);
+        }
+    case MOD_RIGHT: return "Right";
+    case MOD_LED_DASHBOARD: return "LED DB";
+    case MOD_LED_FINS: return "LED Fins";
+    case MOD_LED_CABLE_HOLDER: return "LED CH";
+    case MOD_LED_HEADLIGHTS: return "LED HL";
+    case MOD_LED_HEADLIGHTS_AMB: return "LED LHA";
+    default:
+        return QStringLiteral("Unknown: ").append(mod);
     }
 }
 

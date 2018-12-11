@@ -59,6 +59,9 @@ private:
 
     QSerialPort* resolvePort(QString portName, bool reverse = false);
 
+    QString resolveCmd(QChar cmd);
+    QString resolveMod(QChar cmd, QChar mod);
+
 private slots:
     void checkPorts();
 

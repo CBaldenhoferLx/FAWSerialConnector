@@ -85,7 +85,7 @@ Window {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                title: qsTr("Dashboard")
+                title: qsTr("Dashboard Log")
 
                 portName: port1.currentText
             }
@@ -96,7 +96,7 @@ Window {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                title: qsTr("Back Control")
+                title: qsTr("Back Control Log")
 
                 portName: port2.currentText
             }
@@ -138,7 +138,8 @@ Window {
         }
 
         onCommMessage: {
-            comm.appendLog(source + " -> " + target + " " + msg)
+            if (msg.startsWith("@")) msg = msg.substring(1)
+            comm.appendLog("-> " + target + " " + SerialConnector.generateTooltip(msg))
         }
     }
 }
