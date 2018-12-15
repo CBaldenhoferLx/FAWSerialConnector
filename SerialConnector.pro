@@ -33,5 +33,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     serialconnector.h \
-    C:/Users/Megaport/Documents/Arduino/libraries/FAWControlLib/GlobalConstants.h \
-    C:/Users/Megaport/Documents/Arduino/libraries/FAWControlLib/Protocol.h
+    C:/Users/$$(USERNAME)/Documents/Arduino/libraries/FAWControlLib/GlobalConstants.h \
+    C:/Users/$$(USERNAME)/Documents/Arduino/libraries/FAWControlLib/Protocol.h

@@ -2,5 +2,9 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>LogView.qml</file>
+        <file>CommDelegate.qml</file>
+        <file>LogDelegate.qml</file>
+        <file>CommHeader.qml</file>
+        <file>LogHeader.qml</file>
     </qresource>
 </RCC>

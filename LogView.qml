@@ -1,21 +1,28 @@
-import QtQuick 2.0
+import QtQuick 2.11
 import QtQuick.Layouts 1.3
 import QtQuick.Controls 2.4
 
-Item {
+Rectangle {
 
     property string portName
     property alias title: textTitle.text
     property alias showCmd: cmdPanel.visible
     property alias showExcludePing: excludePing.visible
+    property alias showLogToFile: logToFile.visible
 
-    function appendLog(text) {
-        textContent.append(text)
-        //textContent.append("\n\r")
+    property alias listDelegate: logListView.delegate
+    property alias listHeader: logListView.header
+
+    border.color: "black"
+    border.width: 1
+
+    function appendLog(color, p1, p2, p3, p4) {
+        listModel.append({"c": color, "p1": p1, "p2": p2, "p3": p3, "p4": p4});
+        logListView.positionViewAtEnd()
     }
 
     function clear() {
-        textContent.clear()
+        listModel.clear()
     }
 
     ColumnLayout {
@@ -25,42 +32,36 @@ Item {
             id: textTitle
 
             Layout.fillWidth: true
-            Layout.preferredHeight: 26
+            Layout.preferredHeight: 22
+
+            horizontalAlignment: Text.Center
 
             font.bold: true
-            font.pointSize: 18
+            font.pointSize: 14
         }
 
         Button {
             text: qsTr("Clear")
 
             Layout.fillWidth: true
+            Layout.margins: 1
             Layout.preferredHeight: 26
 
-            onClicked: textContent.text = ""
+            onClicked: clear()
         }
 
-        ScrollView {
-            id: textScrollView
+        ListView {
+            id: logListView
+
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            ScrollBar.horizontal.policy: ScrollBar.AsNeeded
-            ScrollBar.vertical.policy: ScrollBar.AlwaysOn
+            clip: true
 
-            TextArea {
-                id: textContent
+            headerPositioning: ListView.OverlayHeader
 
-                anchors.fill: parent
-
-                wrapMode: TextEdit.NoWrap
-
-                readOnly: true
-
-                font.pointSize: 9
-
-                onTextChanged: {
-                }
+            model: ListModel {
+                id: listModel
             }
         }
 
@@ -75,6 +76,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 20
+                Layout.leftMargin: 2
 
                 border.color: "black"
                 border.width: 1
@@ -84,10 +86,17 @@ Item {
                     anchors.fill: parent
 
                     maximumLength: SerialConnector.cmdLength
+                    cursorVisible: true
+                    leftPadding: 2
 
                     onTextChanged: {
                         var tt = SerialConnector.generateTooltip(text);
-                        if (tt) ToolTip.show(tt, 2000)
+                        if (tt) {
+                            ToolTip.hide()
+                            ToolTip.show(tt, 2000)
+                        } else {
+                            ToolTip.hide()
+                        }
                     }
 
                     onAccepted: {
@@ -111,16 +120,35 @@ Item {
             }
         }
 
-        CheckBox {
-            id: excludePing
+        RowLayout {
+            visible: excludePing.visible | logToFile.visible
 
-            visible: false
+            CheckBox {
+                id: excludePing
 
-            text: qsTr("Exclude Ping")
+                visible: false
 
-            checked: SerialConnector.excludePing
+                text: qsTr("Exclude Ping")
 
-            onToggled: SerialConnector.excludePing = checked
+                checked: SerialConnector.excludePing
+
+                onToggled: {
+                    SerialConnector.excludePing = checked
+                }
+            }
+            CheckBox {
+                id: logToFile
+
+                visible: false
+
+                text: qsTr("Log To File")
+
+                checked: SerialConnector.logToFile
+
+                onToggled: {
+                    SerialConnector.logToFile = checked
+                }
+            }
         }
     }
 

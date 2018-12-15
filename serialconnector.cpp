@@ -10,13 +10,18 @@ SerialConnector::SerialConnector(QObject *parent) : QObject(parent)
     m_checkTimer.setInterval(m_settings->value(QStringLiteral("portCheckIntervalMs"), 2000).toInt());
     m_checkTimer.start();
 
-    QObject::connect(&m_port1, &QSerialPort::readyRead, this, &SerialConnector::handleReadyRead);
-    QObject::connect(&m_port1, &QSerialPort::errorOccurred, this, &SerialConnector::handleError);
+    QObject::connect(&m_port1, &QSerialPort::readyRead, this, &SerialConnector::onReadyRead);
+    QObject::connect(&m_port1, &QSerialPort::errorOccurred, this, &SerialConnector::onError);
+    QObject::connect(&m_port1, &QSerialPort::bytesWritten, this, &SerialConnector::onBytesWritten);
 
-    QObject::connect(&m_port2, &QSerialPort::readyRead, this, &SerialConnector::handleReadyRead);
-    QObject::connect(&m_port2, &QSerialPort::errorOccurred, this, &SerialConnector::handleError);
+    QObject::connect(&m_port2, &QSerialPort::readyRead, this, &SerialConnector::onReadyRead);
+    QObject::connect(&m_port2, &QSerialPort::errorOccurred, this, &SerialConnector::onError);
+    QObject::connect(&m_port2, &QSerialPort::bytesWritten, this, &SerialConnector::onBytesWritten);
 
     m_excludePing = m_settings->value(QStringLiteral("excludePing"), false).toBool();
+
+    m_logFile1.setFileName("port1.log");
+    m_logFile2.setFileName("port2.log");
 }
 
 QStringList SerialConnector::availablePorts() {
@@ -32,9 +37,28 @@ bool SerialConnector::excludePing() {
 }
 
 void SerialConnector::setExcludePing(bool excludePing) {
+    if (m_excludePing==excludePing) return;
+
     m_excludePing = excludePing;
     m_settings->setValue(QStringLiteral("excludePing"), m_excludePing);
     Q_EMIT(excludePingChanged());
+}
+
+bool SerialConnector::logToFile() {
+    return m_logToFile;
+}
+
+void SerialConnector::setLogToFile(bool logToFile) {
+    if (m_logToFile==logToFile) return;
+
+    m_logToFile = logToFile;
+    m_settings->setValue(QStringLiteral("logToFile"), m_logToFile);
+    Q_EMIT(logToFileChanged());
+
+    if (!m_logToFile) {
+        m_logFile1.close();
+        m_logFile2.close();
+    }
 }
 
 int SerialConnector::cmdLength() {
@@ -109,7 +133,7 @@ void SerialConnector::checkPorts() {
     }
 }
 
-void SerialConnector::handleReadyRead() {
+void SerialConnector::onReadyRead() {
     QSerialPort* port = static_cast<QSerialPort*>(sender());
 
     if (port->bytesAvailable()<DATA_PACKAGE_SIZE+2) {
@@ -121,6 +145,21 @@ void SerialConnector::handleReadyRead() {
 
     while (port->canReadLine()) {
         QByteArray msg = port->readLine();
+
+        if (m_logToFile) {
+            QFile *logFile = resolveFile(port->portName());
+
+            if (!logFile->isOpen()) {
+                if (logFile->open(QIODevice::WriteOnly)) {
+                    qDebug() << "Opened log file" << logFile->fileName();
+                } else {
+                    qWarning() << "Unable to open log file" << logFile->fileName();
+                }
+            }
+
+            logFile->write(msg);
+            logFile->flush();
+        }
 
         qDebug() << Q_FUNC_INFO << port->portName() << msg;
 
@@ -143,7 +182,7 @@ void SerialConnector::handleReadyRead() {
                 if (m_excludePing && (msg.at(1)==CMD_PING ||msg.at(1)==CMD_PING_FB)) {
                     qDebug() << "Ignoring ping";
                 } else {
-                    Q_EMIT(commMessage(port->portName(), targetPort->portName(), msg));
+                    Q_EMIT(commMessage(targetPort->portName(), resolveCmd(msg.at(1)), resolveMod(msg.at(1), msg.at(2)), resolveVal(msg.at(1), msg.at(3))));
                 }
             } else {
                 qWarning() << "Invalid message length:" << msg.length();
@@ -154,7 +193,7 @@ void SerialConnector::handleReadyRead() {
     }
 }
 
-void SerialConnector::handleError() {
+void SerialConnector::onError() {
     QSerialPort* port = static_cast<QSerialPort*>(sender());
     if (port->error()!=QSerialPort::NoError) {
         qWarning() << Q_FUNC_INFO << port->errorString();
@@ -162,11 +201,24 @@ void SerialConnector::handleError() {
     }
 }
 
+void SerialConnector::onBytesWritten(qint64 bytes) {
+    QSerialPort* port = static_cast<QSerialPort*>(sender());
+    qDebug() << Q_FUNC_INFO << port->portName() << bytes;
+}
+
 QSerialPort* SerialConnector::resolvePort(QString portName, bool reverse) {
     if (portName==m_port1.portName()) {
         return reverse ? &m_port2 : &m_port1;
     } else {
         return reverse ? &m_port1 : &m_port2;
+    }
+}
+
+QFile *SerialConnector::resolveFile(QString portName, bool reverse) {
+    if (portName==m_port1.portName()) {
+        return reverse ? &m_logFile2 : &m_logFile1;
+    } else {
+        return reverse ? &m_logFile1 : &m_logFile2;
     }
 }
 
@@ -184,7 +236,7 @@ QString SerialConnector::generateTooltip(QString cmd) {
 
     QString returnStr = resolveCmd(cmd.at(0));
     if (cmd.length()>1) returnStr.append("|").append(resolveMod(cmd.at(0), cmd.at(1)));
-    if (cmd.length()>2) returnStr.append("|").append(cmd.at(2));
+    if (cmd.length()>2) returnStr.append("|").append(resolveVal(cmd.at(0), cmd.at(2)));
 
     return returnStr;
 }
@@ -235,12 +287,67 @@ QString SerialConnector::resolveMod(QChar cmd, QChar mod) {
         }
     case MOD_RIGHT: return "Right";
     case MOD_LED_DASHBOARD: return "LED DB";
-    case MOD_LED_FINS: return "LED Fins";
+    case MOD_LED_FINS:     // MOD_FORWARD
+        switch(cmd.toLatin1()) {
+        case CMD_SEAT:
+        case CMD_SEAT_POS_FB:
+        case CMD_SEAT_MOVE_FB:
+        case CMD_SEAT_SWITCH_FB:
+            return "Forward";
+        case CMD_LED_COLOR:
+        case CMD_LED_COLOR_FB:
+        case CMD_LED_BRIGHTNESS:
+        case CMD_LED_BRIGHTNESS_FB:
+            return "LED Fins";
+        default:
+            return QStringLiteral("Unknown: ").append(mod);
+        }
+
     case MOD_LED_CABLE_HOLDER: return "LED CH";
     case MOD_LED_HEADLIGHTS: return "LED HL";
     case MOD_LED_HEADLIGHTS_AMB: return "LED LHA";
+    case MOD_STOP: return "Stop";
+    case MOD_BACKWARD: return "Backward";
     default:
-        return QStringLiteral("Unknown: ").append(mod);
+        switch(cmd.toLatin1()) {
+        case CMD_RESTART:
+        case CMD_PING:
+        case CMD_PING_FB:
+            return "";
+        default:
+            return QStringLiteral("Unknown: ").append(mod);
+        }
     }
 }
 
+QString SerialConnector::resolveVal(QChar cmd, QChar val) {
+    switch(cmd.toLatin1()) {
+    case CMD_PING:
+    case CMD_PING_FB:
+    case CMD_RESTART:
+        return "";
+    case CMD_LED_COLOR:
+    case CMD_LED_COLOR_FB:
+    case CMD_LED_BRIGHTNESS:
+    case CMD_LED_BRIGHTNESS_FB:
+        switch(val.toLatin1()) {
+        case '0': return "Default";
+
+        case '1': return "Red";
+        case '2': return "DeepPink";
+        case '3': return "Purple";
+
+        case '4': return "RoyalBlue";
+        case '5': return "DeepSkyBlue";
+        case '6': return "LightGreen";
+
+        case '7': return "Gold";
+        case '8': return "Orange";
+        case '9': return "GhostWhite";
+        default:
+            return QStringLiteral("Unknown: ").append(val);
+        }
+    default:
+        return val;
+    }
+}

@@ -1,13 +1,17 @@
 import QtQuick 2.12
 import QtQuick.Window 2.12
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtQuick.Layouts 1.3
 
 Window {
     visible: true
-    width: 800
-    height: 600
+    width: 1024
+    height: 768
     title: qsTr("FAW Demo")
+
+    property string dashboardColor: "beige"
+    property string backControlColor: "honeydew"
 
     function connect() {
         SerialConnector.connect(port1.currentText, port2.currentText)
@@ -23,9 +27,22 @@ Window {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
 
-            Text {
-                text: qsTr("Dashboard")
+            Rectangle {
+                Layout.preferredWidth: dbLabel.width
+                Layout.preferredHeight: 40
+
+                color: dashboardColor
+
+                Text {
+                    id: dbLabel
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    verticalAlignment: Text.AlignVCenter
+
+                    text: qsTr("Dashboard")
+                }
             }
+
 
             ComboBox {
                 id: port1
@@ -35,8 +52,20 @@ Window {
                 enabled: !SerialConnector.isConnected
             }
 
-            Text {
-                text: qsTr("Back Control")
+            Rectangle {
+                Layout.preferredWidth: backControlLabel.width
+                Layout.preferredHeight: 40
+
+                color: backControlColor
+
+                Text {
+                    id: backControlLabel
+                    text: qsTr("Back Control")
+
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
 
             ComboBox {
@@ -66,6 +95,8 @@ Window {
             Layout.fillWidth: true
             //Layout.fillHeight: true
 
+            spacing: 1
+
             LogView {
                 id: comm
 
@@ -73,10 +104,23 @@ Window {
                 Layout.fillHeight: true
 
                 showExcludePing: true
+                showLogToFile: true
 
                 showCmd: false
 
                 title: qsTr("Communication")
+
+                listDelegate: Component {
+                    CommDelegate {
+                        width: comm.width
+                    }
+                }
+
+                listHeader: Component {
+                    CommHeader {
+                        width: comm.width
+                    }
+                }
             }
 
             LogView {
@@ -88,6 +132,18 @@ Window {
                 title: qsTr("Dashboard Log")
 
                 portName: port1.currentText
+
+                listDelegate: Component {
+                    LogDelegate {
+                        width: log1.width
+                    }
+                }
+
+                listHeader: Component {
+                    LogHeader {
+                        width: log1.width
+                    }
+                }
             }
 
             LogView {
@@ -99,6 +155,18 @@ Window {
                 title: qsTr("Back Control Log")
 
                 portName: port2.currentText
+
+                listDelegate: Component {
+                    LogDelegate {
+                        width: log2.width
+                    }
+                }
+
+                listHeader: Component {
+                    LogHeader {
+                        width: log2.width
+                    }
+                }
             }
         }
     }
@@ -131,15 +199,15 @@ Window {
 
         onLogMessage: {
             if (port1.currentText==port) {
-                log1.appendLog(message)
+                log1.appendLog(null, msg)
             } else {
-                log2.appendLog(message)
+                log2.appendLog(null, msg)
             }
         }
 
         onCommMessage: {
-            if (msg.startsWith("@")) msg = msg.substring(1)
-            comm.appendLog("-> " + target + " " + SerialConnector.generateTooltip(msg))
+            var color = port1.currentText==targetPort ? backControlColor : dashboardColor
+            comm.appendLog(color, targetPort, cmd, mod, value)
         }
     }
 }
