@@ -35,6 +35,10 @@ Item {
         width: 100
         stepSize: 1
 
+        onMoved: {
+            SerialConnector.sendCmd(1, "fx" + value)
+        }
+
         Text {
             text: parent.value
         }
