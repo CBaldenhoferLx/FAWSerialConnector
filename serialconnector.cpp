@@ -24,6 +24,10 @@ SerialConnector::SerialConnector(QObject *parent) : QObject(parent)
     m_logFile2.setFileName("port2.log");
 }
 
+SerialConnector::~SerialConnector() {
+    disconnect();
+}
+
 QStringList SerialConnector::availablePorts() {
     return m_availablePorts;
 }
@@ -182,6 +186,7 @@ void SerialConnector::onReadyRead() {
                 if (m_excludePing && (msg.at(1)==CMD_PING ||msg.at(1)==CMD_PING_FB)) {
                     qDebug() << "Ignoring ping";
                 } else {
+                    Q_EMIT(rawMessage(targetPort->portName(), msg.at(1), msg.at(2), msg.at(3)));
                     Q_EMIT(commMessage(targetPort->portName(), resolveCmd(msg.at(1)), resolveMod(msg.at(1), msg.at(2)), resolveVal(msg.at(1), msg.at(3))));
                 }
             } else {
@@ -229,6 +234,13 @@ void SerialConnector::sendCmd(QString port, QString cmd) {
     QByteArray data = cmd.prepend(CMD_IDENTIFIER).append("\r\n").toLatin1();
     qDebug() << "Sending" << data;
     sendPort->write(data);
+}
+
+void SerialConnector::sendCmd(int portIndex, QString cmd) {
+    qDebug() << Q_FUNC_INFO << portIndex << cmd;
+
+    QString portName = portIndex==0 ? m_port1.portName() : m_port2.portName();
+    sendCmd(portName, cmd);
 }
 
 QString SerialConnector::generateTooltip(QString cmd) {

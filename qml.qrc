@@ -6,5 +6,16 @@
         <file>LogDelegate.qml</file>
         <file>CommHeader.qml</file>
         <file>LogHeader.qml</file>
+        <file>CommTab.qml</file>
+        <file>StatusTab.qml</file>
+        <file>model.png</file>
+        <file>LedSpot.qml</file>
+        <file>arrow.png</file>
+        <file>ArrowSpot.qml</file>
+        <file>FanSpot.qml</file>
+        <file>fan.png</file>
+        <file>fan2.png</file>
+        <file>vapo.png</file>
+        <file>VapoSpot.qml</file>
     </qresource>
 </RCC>

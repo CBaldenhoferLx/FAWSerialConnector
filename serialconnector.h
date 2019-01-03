@@ -16,6 +16,7 @@ class SerialConnector : public QObject
     Q_OBJECT
 public:
     explicit SerialConnector(QObject *parent = nullptr);
+    ~SerialConnector();
 
     Q_PROPERTY(QStringList availablePorts READ availablePorts NOTIFY availablePortsChanged)
 
@@ -36,6 +37,7 @@ public:
     Q_INVOKABLE void disconnect();
 
     Q_INVOKABLE void sendCmd(QString port, QString cmd);
+    Q_INVOKABLE void sendCmd(int portIndex, QString cmd);
     Q_INVOKABLE QString generateTooltip(QString cmd);
 
     Q_INVOKABLE QVariant getSetting(QString key, QVariant defaultValue);
@@ -52,6 +54,7 @@ signals:
 
     //void commMessage(QString source, QString target, QString msg);
     void commMessage(QString targetPort, QString cmd, QString mod, QString value);
+    void rawMessage(QString targetPort, QChar cmd, QChar mod, QChar value);
 
 private:
     QSettings* m_settings;
