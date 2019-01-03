@@ -121,7 +121,9 @@ Rectangle {
         }
 
         RowLayout {
-            visible: excludePing.visible | logToFile.visible
+            Layout.fillWidth: true
+            Layout.fillHeight: false
+            Layout.preferredHeight: excludePing.visible || logToFile.visible ? 50 : 0
 
             CheckBox {
                 id: excludePing
@@ -136,6 +138,7 @@ Rectangle {
                     SerialConnector.excludePing = checked
                 }
             }
+
             CheckBox {
                 id: logToFile
 
