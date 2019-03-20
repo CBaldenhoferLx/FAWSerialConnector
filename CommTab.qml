@@ -32,7 +32,7 @@ ColumnLayout {
                 anchors.bottom: parent.bottom
                 verticalAlignment: Text.AlignVCenter
 
-                text: qsTr("Dashboard")
+                text: qsTr("Dashboard (MEGA)")
             }
         }
 
@@ -53,7 +53,7 @@ ColumnLayout {
 
             Text {
                 id: backControlLabel
-                text: qsTr("Back Control")
+                text: qsTr("Back Control (UNO)")
 
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom

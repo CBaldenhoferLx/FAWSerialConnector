@@ -4,6 +4,7 @@ import QtQuick.Controls 2.4
 
 Rectangle {
 
+    readonly property int max_list_count: 5000
     property string portName
     property alias title: textTitle.text
     property alias showCmd: cmdPanel.visible
@@ -17,6 +18,7 @@ Rectangle {
     border.width: 1
 
     function appendLog(color, p1, p2, p3, p4) {
+        if (listModel.count>max_list_count) listModel.remove(0, 10);
         listModel.append({"c": color, "p1": p1, "p2": p2, "p3": p3, "p4": p4});
         logListView.positionViewAtEnd()
     }

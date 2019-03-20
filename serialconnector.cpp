@@ -121,6 +121,8 @@ void SerialConnector::disconnect() {
 }
 
 void SerialConnector::checkPorts() {
+    if (m_isConnected) return;          // do not check during active comm
+
     //qDebug() << Q_FUNC_INFO;
 
     QStringList newList;
